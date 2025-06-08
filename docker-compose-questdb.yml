@@ -9,6 +9,7 @@ services:
       - "9000:9000"  # HTTP interface
       - "9009:9009"  # QuestDB Line Protocol
       - "8812:8812"  # PostgreSQL wire protocol
+      - "9003:9003"  # Prometheus metrics
     volumes:
       - questdb_data:/var/lib/questdb
     environment:
@@ -16,8 +17,17 @@ services:
       - QDB_HTTP_PORT=9000
       - QDB_LINE_TCP_PORT=9009
       - QDB_LOG_LEVEL=info
+      - QDB_METRICS_ENABLED=true
+      - QDB_HTTP_MIN_ENABLED=true
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9003/health"]
+      test: [
+    "perl", "-e",
+    "use IO::Socket::INET; \
+    $socket = IO::Socket::INET->new(PeerAddr=>'localhost:9003') or exit 1; \
+    print \$socket \"GET / HTTP/1.0\\r\\nHost: localhost:9003 \\r\\n\\r\\n\"; \
+    \$response = <\$socket>; \
+    if (\$response =~ /HTTP\\/1\\.[01] 2\\d\\d/) { exit 0; } else { exit 1; }"
+  ]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -29,11 +39,11 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '0.50'
-          memory: 512M
+          cpus: '4.00'     # Max 4 cores
+          memory: 6144M    # Max 6 GB RAM
         reservations:
-          cpus: '0.25'
-          memory: 256M
+          cpus: '1.00'     # Guaranteed 1 core
+          memory: 2048M    # Guaranteed 2 GB
 
 volumes:
   questdb_data:
