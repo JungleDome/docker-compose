@@ -14,7 +14,24 @@ services:
       - no-new-privileges:true
     environment:
       - TZ=UTC
+    healthcheck:
+      test: ["CMD", "curl", "-kfsSL", "https://localhost:9443"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
 
 volumes:
   portainer_data:
-    name: portainer_data
